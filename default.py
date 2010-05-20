@@ -6,7 +6,7 @@ __plugin__ = "Tou.tv"
 __author__ = 'misil [michaelsillslavoie@gmail.com]'
 __url__ = "http://xbmctoutv.blogspot.com/"
 __credits__ = "PBS and CBS plugins"
-__version__ = "0.0.7"
+__version__ = "0.0.8"
 
 import xbmc, xbmcgui, xbmcplugin, urllib2, urllib, re, sys, os, traceback
 
@@ -90,11 +90,12 @@ def playVideo(url, name, thumb, plot):
 	pid = p.findall(url_data)
 	url = THEPLATFORM_CONTENT_URL + pid[0] + '&format=SMIL'
 	url_data = readUrl(url)
-	rtmp_url, playpath, title = re.compile('<ref src="rtmp:(.+?)mp4:(.+?)" title="(.+?)"').findall(url_data)[0]
+	rtmp_url = re.compile('<meta base="rtmp:(.+?)"').findall(url_data)[0]
+	playpath = re.compile('<ref src="mp4:(.+?)"').findall(url_data)[0]
 	playpath = "mp4:" + playpath
 	rtmp_url = "rtmp:" + rtmp_url
 	item = xbmcgui.ListItem(label=name,iconImage="DefaultVideo.png",thumbnailImage=thumb)
-	item.setInfo( type="Video", infoLabels={ "Title": title, "Plot": plot } )
+	item.setInfo( type="Video", infoLabels={ "Title": name, "Plot": plot } )
 	item.setProperty("PlayPath", playpath)
 	xbmc.Player(xbmc.PLAYER_CORE_DVDPLAYER).play(rtmp_url, item)
 
