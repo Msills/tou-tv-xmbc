@@ -1,3 +1,5 @@
+# coding=utf-8
+
 """
     Plugin for streaming media from Tou.tv
 """
@@ -33,14 +35,10 @@ def readUrl(url):
 	f.close()
 	return url_data
 
-
-
 """
 	List the home page
 """
-
 def showRoot():
-		# url_data = readUrl(TOU_TV_BASE_URL)
 		# add the built in categories
 		handle = int(sys.argv[1])
 		u  =  sys.argv[0]
@@ -55,7 +53,6 @@ def showRoot():
 """
     Show the category selected at the top level
 """
-
 def showCategory(name):
 	if name  == 'repertoire':
 		showRepertoire()
@@ -66,17 +63,14 @@ def showCategory(name):
 	else:
 		showSection(name)
 
-
 def showSearch():
 	kb = xbmc.Keyboard('', 'Recherche',False)
 	kb.doModal()
 	if kb.isConfirmed():
 		url_data = readUrl(TOU_TV_BASE_URL + TOU_TV_SEARCH_URL + urllib.quote_plus(kb.getText()))
 		showSearchResults(url_data)
-
 	else:
 		showRoot()
-
 
 def showSearchResults(url_data):
 
@@ -92,9 +86,6 @@ def showSearchResults(url_data):
 		li = xbmcgui.ListItem(title1 + ' - ' + title2,iconImage=thumb, thumbnailImage=thumb)
 		u = sys.argv[0] + "?mode=3&name=" + urllib.quote_plus(title1) + "&url=" + urllib.quote_plus(url) 
 		xbmcplugin.addDirectoryItem(int(sys.argv[1]),u,li,True)
-		
-
-
 
 	reg ='<div class="blocepisodeemission">[\s\n]+<div class="floatimg">[\s\n]+<a href="(.+?)" .+?class="vignettesgrandes">[\s\n]+<span class="play"></span>[\s\n]+<span class="duration">&nbsp;(.+?)</span>[\s\n]+<img src="(.+?)" id.+? />[\s\n]+</a>[\s\n]+</div>[\s\n]+<div class="floatinfos">[\s\n]+<a href=".+?" id=.+?class="infosEmission">[\s\n]+<strong>(.+?)</strong>[\s\n]+(.+?)[\s\n]+</a>' 
 
@@ -109,12 +100,9 @@ def showSearchResults(url_data):
 		u = sys.argv[0] + "?mode=4&plot=&name=" + urllib.quote_plus(title1) + "&url=" + urllib.quote_plus(url) + "&thumb=" + urllib.quote_plus(thumb)
 		xbmcplugin.addDirectoryItem(int(sys.argv[1]),u,li)
 
-
-
 """
 	Show the available genres from the main page
 """
-
 def showGenres():
 	url_data = readUrl(TOU_TV_BASE_URL)
 	match = re.compile('<a id="GenresFooterRepeater.+?href="(.+?)">(.+?)</a></li>').findall(url_data)
@@ -127,7 +115,6 @@ def showGenres():
 """
 	show thumbnail items either from a complete genre page or from a section of the main page
 """
-
 def showDisplayItems(data):
 	regex = '<a href="(.+?)" id="MainContent.+?" class="vignettesgrandes".+?>[\n\s]+<span class="play"></span>[\n\s]+<span class="duration">&nbsp;(.+?)</span>[\n\s]+<img id=".+?" src="(.+?)".+?/>[\n\s]+</a>[\n\s]+<h3><a href=.+?>(.+?)</a></h3>[\n\s]+<a href=".+?>\s*(?:<small.+?>)?(.+?)<' 
 
@@ -141,19 +128,15 @@ def showDisplayItems(data):
 		u = sys.argv[0] + "?mode=4&plot=&name=" + urllib.quote_plus(title1) + "&url=" + urllib.quote_plus(url) + "&thumb=" + urllib.quote_plus(thumb)
 		xbmcplugin.addDirectoryItem(int(sys.argv[1]),u,li)
 
-
-
 def showSection(name):
 	url_data = readUrl(TOU_TV_BASE_URL)
 	ar = url_data.split('<h2>')
 	d = {'nouveautes':1,'favoris':2,'vedette':3}
 	showDisplayItems(ar[d[name]])
 
-
 """
 	Show the main page for a given genre
 """
-
 def showAccueil(data_url,genre):
 	url_data = readUrl(data_url)
 	# first, add the entry for all videos
@@ -166,8 +149,6 @@ def showAccueil(data_url,genre):
 		xbmcplugin.addDirectoryItem(int(sys.argv[1]),u,li,True)
 	
 	showDisplayItems(url_data)
-	
-
 
 """
 	List all Tou.tv shows in the Tou.tv plugin root directory
@@ -180,7 +161,6 @@ def showRepertoire(data_url, category):
 			li = xbmcgui.ListItem(name)
 			u = sys.argv[0] + "?mode=3&name=" + urllib.quote_plus(name) + "&url=" + urllib.quote_plus(url)
 			xbmcplugin.addDirectoryItem(int(sys.argv[1]),u,li,True)
-
 
 """
 	List a specified show episodes
@@ -211,6 +191,7 @@ def showList(url, name):
 """
 def get_thumbnail(thumbnail_url):
 	try:
+		print thumbnail_url
 		filename = xbmc.getCacheThumbName( thumbnail_url )
 		filepath = xbmc.translatePath( os.path.join( BASE_CACHE_PATH, filename[ 0 ], filename ) )
 		if not os.path.isfile( filepath ):
