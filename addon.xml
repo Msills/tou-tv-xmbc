@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="plugin.video.toutv"
+       name="TouTv"
+       version="1.0.1"
+       provider-name="">
+  <requires>
+    <import addon="xbmc.python" version="1.0"/>
+  </requires>
+  <extension point="xbmc.python.pluginsource"
+            library="default.py">
+        <provides>video</provides>
+  </extension>
+  <extension point="xbmc.addon.metadata">
+    <platform>all</platform>
+    <summary>Plugin for the Radio-Canada site TOU.TV</summary>
+	<summary lang="fr">Plugin vidéo donnant acces a toutes les vidéos de la site tou.tv de radio-canada</summary>
+    <description>Play all episodes from Radio-Canada replay site TOU.TV.  Most videos can only be accessed in Canada.</description>
+	<description lang="fr">Ce plugin vous conne access à la mosaique radio-canada.  La plupart des vidéos ne marchent qu'au Canada</description>
+  </extension>
+</addon>
