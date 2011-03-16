@@ -1,4 +1,4 @@
-# coding=utf-8
+# -*- coding: utf-8 -*-
 
 """
     Plugin for streaming media from Tou.tv
@@ -8,9 +8,17 @@ __plugin__ = "Tou.tv"
 __author__ = 'misil [michaelsillslavoie@gmail.com]'
 __url__ = "http://xbmctoutv.blogspot.com/"
 __credits__ = "PBS and CBS plugins"
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
-import xbmc, xbmcgui, xbmcplugin, urllib2, urllib, re, sys, os, traceback
+import xbmc
+import xbmcgui
+import xbmcplugin
+import urllib2
+import urllib
+import re
+import sys
+import os
+import traceback
 
 HEADER = 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.1.1) Gecko/20090715 Firefox/3.5.1'
 BASE_CACHE_PATH = os.path.join( xbmc.translatePath( "special://profile/" ), "Thumbnails", "Video" )
@@ -191,7 +199,6 @@ def showList(url, name):
 """
 def get_thumbnail(thumbnail_url):
 	try:
-		print thumbnail_url
 		filename = xbmc.getCacheThumbName( thumbnail_url )
 		filepath = xbmc.translatePath( os.path.join( BASE_CACHE_PATH, filename[ 0 ], filename ) )
 		if not os.path.isfile( filepath ):
@@ -211,8 +218,8 @@ def playVideo(url, name, thumb, plot):
 	pid = p.findall(url_data)
 	url = THEPLATFORM_CONTENT_URL + pid[0] + '&format=SMIL'
 	url_data = readUrl(url)
-	rtmp_url = re.compile('<meta base="rtmp:(.+?)"').findall(url_data)[0]
-	playpath = re.compile('<ref src="mp4:(.+?)"').findall(url_data)[0]
+	rtmp_url = re.compile('<ref src="rtmp:(.+?)mp4:').findall(url_data)[0]
+	playpath = re.compile('mp4:(.+?)"').findall(url_data)[0]
 	playpath = "mp4:" + playpath
 	rtmp_url = "rtmp:" + rtmp_url
 	item = xbmcgui.ListItem(label=name,iconImage="DefaultVideo.png",thumbnailImage=thumb)
@@ -271,8 +278,6 @@ try:
 	plot = urllib.unquote_plus(params["plot"])
 except:
 	pass
-
-print mode,url,name,int(sys.argv[1])
 
 if mode == None:
 	name = ''
