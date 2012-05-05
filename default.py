@@ -8,7 +8,7 @@ __plugin__ = "Tou.tv"
 __author__ = 'misil [michaelsillslavoie@gmail.com]'
 __url__ = "http://xbmctoutv.blogspot.com/"
 __credits__ = "PBS and CBS plugins"
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 import xbmc
 import xbmcgui
