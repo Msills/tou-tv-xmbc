@@ -214,7 +214,7 @@ def get_thumbnail(thumbnail_url):
 """
 def playVideo(url, name, thumb, plot):
 	url_data = readUrl(url)
-	p = re.compile("toutv.releaseUrl='(.+?)'")
+	p = re.compile('"PID":"(.+?)"')
 	pid = p.findall(url_data)
 	url = THEPLATFORM_CONTENT_URL + pid[0] + '&format=SMIL'
 	url_data = readUrl(url)
