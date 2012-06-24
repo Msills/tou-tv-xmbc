@@ -8,7 +8,7 @@ __plugin__ = "Tou.tv"
 __author__ = 'misil [michaelsillslavoie@gmail.com]'
 __url__ = "http://xbmctoutv.blogspot.com/"
 __credits__ = "PBS and CBS plugins"
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 import xbmc
 import xbmcgui
@@ -26,19 +26,60 @@ BASE_CACHE_PATH = os.path.join( xbmc.translatePath( "special://profile/" ), "Thu
 TOU_TV_BASE_URL = 'http://www.tou.tv'
 TOU_TV_REPERTOIRE_URL = '/repertoire'
 TOU_TV_SEARCH_URL = '/recherche?q='
-TOU_TV_MEDIA_FLAG = 'toutv.mediaData'
 
 THEPLATFORM_CONTENT_URL = 'http://release.theplatform.com/content.select?pid='
 
 DHARMA_RTMP_FIX = False
 
+OPTION_LIST_BY_SEASON = True
+
+
+
+def unescape_callback(matches):
+        html_entities = {
+                'quot':'\"', 'amp':'&', 'apos':'\'', 'lt':'<', 'gt':'>', 'nbsp':' ', 'copy':'©', 'reg':'®',
+                'Agrave':'À', 'Aacute':'Á', 'Acirc':'Â', 'Atilde':'Ã', 'Auml':'Ä', 'Aring':'Å', 'AElig':'Æ',
+                'Ccedil':'Ç', 'Egrave':'È', 'Eacute':'É', 'Ecirc':'Ê', 'Euml':'Ë', 'Igrave':'Ì', 'Iacute':'Í',
+                'Icirc':'Î', 'Iuml':'Ï', 'ETH':'Ð', 'Ntilde':'Ñ', 'Ograve':'Ò', 'Oacute':'Ó', 'Ocirc':'Ô',
+                'Otilde':'Õ', 'Ouml':'Ö', 'Oslash':'Ø', 'Ugrave':'Ù', 'Uacute':'Ú', 'Ucirc':'Û', 'Uuml':'Ü',
+                'Yacute':'Ý', 'agrave':'à', 'aacute':'á', 'acirc':'â', 'atilde':'ã', 'auml':'ä', 'aring':'å',
+                'aelig':'æ', 'ccedil':'ç', 'egrave':'è', 'eacute':'é', 'ecirc':'ê', 'euml':'ë', 'igrave':'ì',
+                'iacute':'í', 'icirc':'î', 'iuml':'ï', 'eth':'ð', 'ntilde':'ñ', 'ograve':'ò', 'oacute':'ó',
+                'ocirc':'ô', 'otilde':'õ', 'ouml':'ö', 'oslash':'ø', 'ugrave':'ù', 'uacute':'ú', 'ucirc':'û',
+                'uuml':'ü', 'yacute':'ý', 'yuml':'ÿ'
+        }
+
+        entity = matches.group(0)
+        val = matches.group(1)
+
+        try:
+                if entity[:2] == '\u':
+                        return entity.decode('unicode-escape')
+                elif entity[:3] == '&#x':
+                        return unichr(int(val, 16))
+                elif entity[:2] == '&#':
+                        return unichr(int(val))
+                else:
+                        return html_entities[val].decode('utf-8')
+
+        except (ValueError, KeyError):
+                pass
+
+def HTMLUnescape(data):
+	data = data.decode('utf-8')
+        data = re.sub('&#?x?(\w+);|\\\\u\d{4}', unescape_callback, data)
+	data = data.encode('utf-8')
+
+        return data
+
+
 """
 	Read all the text from the specified url
 """
-def readUrl(url):
+def readUrl(url, params):
 	req = urllib2.Request(url)
 	req.add_header('User-Agent', HEADER)
-	f = urllib2.urlopen(req)
+	f = urllib2.urlopen(req, params)
 	url_data = f.read()
 	f.close()
 	return url_data
@@ -51,21 +92,24 @@ def showRoot():
 		handle = int(sys.argv[1])
 		u  =  sys.argv[0]
 		url = urllib.quote_plus(TOU_TV_BASE_URL + TOU_TV_REPERTOIRE_URL)
-		xbmcplugin.addDirectoryItem(handle,u + '?mode=2&name=repertoire&url=' + url,xbmcgui.ListItem('A � Z'),True)
+		xbmcplugin.addDirectoryItem(handle,u + '?mode=2&name=repertoire',xbmcgui.ListItem('A à Z'),True)
 		xbmcplugin.addDirectoryItem(handle,u + '?mode=0&name=genres',xbmcgui.ListItem('Genres'),True)
 		xbmcplugin.addDirectoryItem(handle,u + '?mode=0&name=recherche',xbmcgui.ListItem('Recherche'),True)
-		xbmcplugin.addDirectoryItem(handle,u + '?mode=0&name=nouveautes',xbmcgui.ListItem('� D�couvrir'),True)
-		xbmcplugin.addDirectoryItem(handle,u + '?mode=0&name=favoris',xbmcgui.ListItem('Les Favoris Sur TOU.TV'),True)
-		xbmcplugin.addDirectoryItem(handle,u + '?mode=0&name=vedette',xbmcgui.ListItem('Les Plus R�cents'),True)
+		xbmcplugin.addDirectoryItem(handle,u + '?mode=0&name=country', xbmcgui.ListItem('Par pays'),True)
+		xbmcplugin.addDirectoryItem(handle,u + '?mode=0&name=VignettesTouTVADecouvrir',xbmcgui.ListItem('À Découvrir'),True)
+		xbmcplugin.addDirectoryItem(handle,u + '?mode=0&name=VignettesTouTVFavoris',xbmcgui.ListItem('Les Favoris Sur TOU.TV'),True)
+		xbmcplugin.addDirectoryItem(handle,u + '?mode=0&name=VignettesTouTVRecents',xbmcgui.ListItem('Les Plus Récents'),True)
 
 """
     Show the category selected at the top level
 """
 def showCategory(name):
 	if name  == 'repertoire':
-		showRepertoire()
+		showRepertoire(None, None)
 	elif name == 'recherche':
 		showSearch()
+	elif name == 'country':
+		showCountry()
 	elif name == 'genres':
 		showGenres()
 	else:
@@ -75,97 +119,102 @@ def showSearch():
 	kb = xbmc.Keyboard('', 'Recherche',False)
 	kb.doModal()
 	if kb.isConfirmed():
-		url_data = readUrl(TOU_TV_BASE_URL + TOU_TV_SEARCH_URL + urllib.quote_plus(kb.getText()))
+		params = urllib.urlencode({'query': kb.getText()})
+		url_data = readUrl(TOU_TV_BASE_URL + TOU_TV_SEARCH_URL, params)
 		showSearchResults(url_data)
 	else:
 		showRoot()
 
 def showSearchResults(url_data):
-
-	# sometimes we match an entire series
-
-	series = '<p class="grandstitres resultats"><strong>(.+?)</strong><small>(.+?)</small></p>.+?[\n\s]+<img class="separateur".+?[\n\s]+<a href="(.+?)" id="MainContent_ctl00_ResultsEmissionsRepeater_LienImage.+?"><img src="(.+?)" id=.+?/></a>'
-
-	match = re.compile(series).findall(url_data)
-
-	for title1,title2,url,img in match:
-		thumb = get_thumbnail(img)
-		url = TOU_TV_BASE_URL + url
-		li = xbmcgui.ListItem(title1 + ' - ' + title2,iconImage=thumb, thumbnailImage=thumb)
-		u = sys.argv[0] + "?mode=3&name=" + urllib.quote_plus(title1) + "&url=" + urllib.quote_plus(url) 
-		xbmcplugin.addDirectoryItem(int(sys.argv[1]),u,li,True)
-
-	reg ='<div class="blocepisodeemission">[\s\n]+<div class="floatimg">[\s\n]+<a href="(.+?)" .+?class="vignettesgrandes">[\s\n]+<span class="play"></span>[\s\n]+<span class="duration">&nbsp;(.+?)</span>[\s\n]+<img src="(.+?)" id.+? />[\s\n]+</a>[\s\n]+</div>[\s\n]+<div class="floatinfos">[\s\n]+<a href=".+?" id=.+?class="infosEmission">[\s\n]+<strong>(.+?)</strong>[\s\n]+(.+?)[\s\n]+</a>' 
-
-	match = re.compile(reg).findall(url_data)
 	
-	for url,duration,img,title1,title2 in match:
-		thumb = get_thumbnail(img)
+	match = re.compile('<img src="(.+?)".+?>.+?<div class="recherche_episodeMetadata">\s+<a href="(.+?)".+?<h3>(.+?)<span.+?">(.+?)</span>.+?<p>(.+?)</p>', re.DOTALL).findall(url_data)
+
+	for img, url, title, season, desc in match:
 		url = TOU_TV_BASE_URL + url
-		title2 = re.sub('<.+?>','',title2)
-		li = xbmcgui.ListItem(title1, iconImage=thumb, thumbnailImage=thumb)
-		li.setInfo( type="Video", infoLabels={ "Title": title1 + " - " + title2 + ' (' + duration + ')'} )
-		u = sys.argv[0] + "?mode=4&plot=&name=" + urllib.quote_plus(title1) + "&url=" + urllib.quote_plus(url) + "&thumb=" + urllib.quote_plus(thumb)
+		title = HTMLUnescape(title + ' (' + season + ')')
+		desc = re.sub('</*span.+?>', '', HTMLUnescape(desc))
+			
+		thumb = get_thumbnail(img)
+		
+		li = xbmcgui.ListItem(title, iconImage=thumb, thumbnailImage=thumb)
+		li.setInfo( type="Video", infoLabels={ "Title": title, "Plot" : desc } )
+		u = sys.argv[0] + "?mode=4&name=" + urllib.quote_plus(title) + "&url=" + urllib.quote_plus(url) + "&thumb=" + urllib.quote_plus(thumb) + "&plot=" + urllib.quote_plus(desc)
 		xbmcplugin.addDirectoryItem(int(sys.argv[1]),u,li)
 
+
 """
-	Show the available genres from the main page
+	Show the available genres from the repertoire page
 """
 def showGenres():
-	url_data = readUrl(TOU_TV_BASE_URL)
-	match = re.compile('<a id="GenresFooterRepeater.+?href="(.+?)">(.+?)</a></li>').findall(url_data)
-	for url,name in match:
-		url = TOU_TV_BASE_URL + url
-		li = xbmcgui.ListItem(name)
-		u = sys.argv[0] + "?mode=1&name=" + urllib.quote_plus(name) + "&url=" + urllib.quote_plus(url)
+	url_data = readUrl(TOU_TV_BASE_URL + TOU_TV_REPERTOIRE_URL, None)
+	match = re.compile('var genres\s*=\s*[^;]+').findall(url_data)
+	
+	genres = re.compile('Title":"(.+?)",.+?"Id":(\d+)').findall(match[0])
+	for title,id in genres:
+		li = xbmcgui.ListItem(title)
+		u = sys.argv[0] + "?mode=1&name=" + urllib.quote_plus(id)
 		xbmcplugin.addDirectoryItem(int(sys.argv[1]),u,li,True)
+
+"""
+	Show the available countries from the repertoire page
+"""
+def showCountry():
+	url_data = readUrl(TOU_TV_BASE_URL + TOU_TV_REPERTOIRE_URL, None)
+	match = re.compile('var countries\s*=\s*\[[^;]+').findall(url_data)
+
+	countries = re.compile('"CountryKey":"(.+?)","CountryValue":"(.+?)"').findall(match[0])
+	for country,name in countries:
+		name = HTMLUnescape(name)
+
+		li = xbmcgui.ListItem(name)
+		u = sys.argv[0] + "?mode=5&name=" + urllib.quote_plus(country)
+		xbmcplugin.addDirectoryItem(int(sys.argv[1]),u,li,True)
+
 
 """
 	show thumbnail items either from a complete genre page or from a section of the main page
 """
 def showDisplayItems(data):
-	regex = '<a href="(.+?)" id="MainContent.+?" class="vignettesgrandes".+?>[\n\s]+<span class="play"></span>[\n\s]+<span class="duration">&nbsp;(.+?)</span>[\n\s]+<img id=".+?" src="(.+?)".+?/>[\n\s]+</a>[\n\s]+<h3><a href=.+?>(.+?)</a></h3>[\n\s]+<a href=".+?>\s*(?:<small.+?>)?(.+?)<' 
-
-	match = re.compile(regex).findall(data)
-	
-	for url,duration,img,title1,title2 in match:
+	info = re.compile('DetailsViewDescription":"(.+?)","DetailsViewSaison":"(.+?)".+?"DetailsViewImageUrlL":"(.+?)".+?"DetailsFullDescription":"(.+?)","DetailsViewUrl":"(.+?)"', re.DOTALL).findall(data)
+	for title, season, img, desc, url in info:
+		title = title + ' (' + season + ')'
 		thumb = get_thumbnail(img)
 		url = TOU_TV_BASE_URL + url
-		li = xbmcgui.ListItem(title1, iconImage=thumb, thumbnailImage=thumb)
-		li.setInfo( type="Video", infoLabels={ "Title": title1 + " - " + title2 + ' (' + duration + ')'} )
-		u = sys.argv[0] + "?mode=4&plot=&name=" + urllib.quote_plus(title1) + "&url=" + urllib.quote_plus(url) + "&thumb=" + urllib.quote_plus(thumb)
+
+		li = xbmcgui.ListItem(title, iconImage=thumb, thumbnailImage=thumb)
+		li.setInfo( type="Video", infoLabels={ "Title": title, "Plot": desc })
+		u = sys.argv[0] + "?mode=4&name=" + urllib.quote_plus(name) + "&url=" + urllib.quote_plus(url) + "&thumb=" + urllib.quote_plus(thumb) + "&plot=" + urllib.quote_plus(desc)
+
 		xbmcplugin.addDirectoryItem(int(sys.argv[1]),u,li)
 
-def showSection(name):
-	url_data = readUrl(TOU_TV_BASE_URL)
-	ar = url_data.split('<h2>')
-	d = {'nouveautes':1,'favoris':2,'vedette':3}
-	showDisplayItems(ar[d[name]])
+def showSection(vignette):
+	url_data = readUrl(TOU_TV_BASE_URL, None)
+	
+	match = re.compile('data-initialdata="(.+?)"').findall(url_data)
+	data = HTMLUnescape(match[0])
 
-"""
-	Show the main page for a given genre
-"""
-def showAccueil(data_url,genre):
-	url_data = readUrl(data_url)
-	# first, add the entry for all videos
-	match = re.compile('<a id="MainContent_ctl00_LienRepertoireHaut" .+?href="(.+?)"></a>').search(url_data)
-	
-	if not match is None:
-		li = xbmcgui.ListItem(genre + ' - A-Z' )
-		url = urllib.quote_plus(TOU_TV_BASE_URL + match.group(1))
-		u = sys.argv[0] + "?mode=2&name=" + urllib.quote_plus(genre) + "&url=" + url
-		xbmcplugin.addDirectoryItem(int(sys.argv[1]),u,li,True)
-	
-	showDisplayItems(url_data)
+	match = re.compile('\{"Id":"' + vignette + '"(.+?)(?:\{"Id"|$)').findall(data)
+
+	showDisplayItems(match[0])
+
 
 """
 	List all Tou.tv shows in the Tou.tv plugin root directory
 """
-def showRepertoire(data_url, category):
-		url_data = readUrl(data_url)
-		match = re.compile('href="(.+?)">\s+<h1 class="titreemission">(.+?)</h1>').findall(url_data)
-		for url, name in match:
+def showRepertoire(filter_genre, filter_country):
+		url_data = readUrl(TOU_TV_BASE_URL + TOU_TV_REPERTOIRE_URL, None)
+		match = re.compile('data-bind=".*displayGenre\(\'(\d*)\'\).*displayCountry\(\'(.*?)\'\)">\s*<div class="repertoire_groupeNivTitre">\s*<.*href="(.+?)">(.+?)</a>').findall(url_data)
+
+		for genre, country, url, name in match:
+			if (filter_genre is not None) and (filter_genre != genre):
+				continue
+
+			if (filter_country is not None) and (filter_country != country):
+				continue
+
 			url = TOU_TV_BASE_URL + url
+			name = HTMLUnescape(name)
+
 			li = xbmcgui.ListItem(name)
 			u = sys.argv[0] + "?mode=3&name=" + urllib.quote_plus(name) + "&url=" + urllib.quote_plus(url)
 			xbmcplugin.addDirectoryItem(int(sys.argv[1]),u,li,True)
@@ -173,26 +222,55 @@ def showRepertoire(data_url, category):
 """
 	List a specified show episodes
 """
-def showList(url, name):
-		url_data = readUrl(url)
+def showList(url, name, season):
+		url_data = readUrl(url, None)
 
-		if TOU_TV_MEDIA_FLAG not in url_data:
-			info = re.compile('<img id=".+?" src="(.+?)".+?class="saison">(.+?)</p>.+?class="episode".+?href="(.+?)".+?<b>(.+?)(&nbsp;)*?</b>.+?<p>(.+?)</p>', re.DOTALL).findall(url_data)
-			for img, saison, url, title, trash, desc in info:
-				thumb = get_thumbnail(img)
-				url = TOU_TV_BASE_URL + url
-				li = xbmcgui.ListItem(title, iconImage=thumb, thumbnailImage=thumb)
-				li.setInfo( type="Video", infoLabels={ "Title": saison + " - " + title, "Plot": desc, "Season": saison } )
-				u = sys.argv[0] + "?mode=4&name=" + urllib.quote_plus(title) + "&url=" + urllib.quote_plus(url) + "&thumb=" + urllib.quote_plus(thumb) + "&plot=" + urllib.quote_plus(desc)
-				xbmcplugin.addDirectoryItem(int(sys.argv[1]),u,li)
+		if 'VignettesTouTVEpisodes' in url_data:
+			match = re.compile('data-initialdata="(.+?)"').findall(url_data)
+			data = HTMLUnescape(match[0])
+
+			season_list = re.compile('"SeasonList":\[(.+?)\]').findall(data)[0]
+			season_list = season_list.split(',')
+			
+			if (season is None) and OPTION_LIST_BY_SEASON and (len(season_list) > 1):
+				info = re.compile('"SeasonList":\[(.+?)\]').findall(data)
+				for season in season_list:
+					li = xbmcgui.ListItem('Saison ' + season)
+					u = sys.argv[0] + '?mode=3&name=' + urllib.quote_plus(name) + '&url=' + urllib.quote_plus(url) + '&season=' + season
+					xbmcplugin.addDirectoryItem(int(sys.argv[1]),u,li,True)
+
+			else:
+				info = re.compile('DetailsViewDescription":"(.+?)".+?"DetailsViewSaison":"(.+?)".+?"DetailsViewImageUrlL":"(.+?)".+?"DetailsFullDescription":"(.+?)".+?"DetailsViewUrl":"(.+?)".+?"DetailsIndexSeason":(.+?),', re.DOTALL).findall(data)
+				for title, season_episode, img, desc, url, item_season in info:
+					
+					if (int(item_season) != season) and OPTION_LIST_BY_SEASON and (len(season_list) > 1):
+						continue
+
+					thumb = get_thumbnail(img)
+					url = TOU_TV_BASE_URL + url
+
+					title = title + ' (' + season_episode + ')'
+
+					li = xbmcgui.ListItem(title, iconImage=thumb, thumbnailImage=thumb)
+					li.setInfo( type="Video", infoLabels={ "Title": title, "Plot": desc })
+					u = sys.argv[0] + "?mode=4&name=" + urllib.quote_plus(name) + "&url=" + urllib.quote_plus(url) + "&thumb=" + urllib.quote_plus(thumb) + "&plot=" + urllib.quote_plus(desc)
+
+					xbmcplugin.addDirectoryItem(int(sys.argv[1]),u,li)
+
+
 		else:
-			desc, season, title, img = re.compile('toutv.mediaData.+?"description":"(.+?)".+?"seasonNumber":(.+?),.+?"title":"(.+?)".+?toutv.imageA=\'(.+?)\'',re.IGNORECASE).findall(url_data)[0]
+		        title = HTMLUnescape(re.compile('<meta itemprop="name" content="(.+?)"').findall(url_data)[0])
+		        desc = HTMLUnescape(re.compile('<meta itemprop="description" content="(.+?)"').findall(url_data)[0])
+
+		        img = re.compile('<meta itemprop="image" content="(.+?)"').findall(url_data)[0]
 			thumb = get_thumbnail(img)
+
 			li = xbmcgui.ListItem(title, iconImage=thumb, thumbnailImage=thumb)
-			season = "Saison " + season
-			li.setInfo( type="Video", infoLabels={ "Title": season + " - " + title, "Plot": desc, "Season": season} )
-			u = sys.argv[0] + "?mode=4&name=" + urllib.quote_plus(title) + "&url=" + urllib.quote_plus(url) + "&thumb=" + urllib.quote_plus(thumb) + "&plot=" + urllib.quote_plus(desc)
+			li.setInfo( type="Video", infoLabels={ "Title": title, "Plot": desc })
+			u = sys.argv[0] + "?mode=4&name=" + urllib.quote_plus(name) + "&url=" + urllib.quote_plus(url) + "&thumb=" + urllib.quote_plus(thumb) + "&plot=" + urllib.quote_plus(desc)
+
 			xbmcplugin.addDirectoryItem(int(sys.argv[1]),u,li)
+
 
 """
 	Get a thumbnail and cache it
@@ -213,11 +291,11 @@ def get_thumbnail(thumbnail_url):
 	Play an episode
 """
 def playVideo(url, name, thumb, plot):
-	url_data = readUrl(url)
-	p = re.compile('"PID":"(.+?)"')
+	url_data = readUrl(url, None)
+	p = re.compile('"idMedia":"(.+?)"')
 	pid = p.findall(url_data)
 	url = THEPLATFORM_CONTENT_URL + pid[0] + '&format=SMIL'
-	url_data = readUrl(url)
+	url_data = readUrl(url, None)
 	rtmp_url = re.compile('<ref src="rtmp:(.+?)mp4:').findall(url_data)[0]
 	playpath = re.compile('mp4:(.+?)"').findall(url_data)[0]
 	playpath = "mp4:" + playpath
@@ -228,7 +306,7 @@ def playVideo(url, name, thumb, plot):
 		item.setProperty("PlayPath", playpath)
 	else:
 		rtmp_url += " playpath=" + playpath
-	
+
 	xbmc.Player(xbmc.PLAYER_CORE_DVDPLAYER).play(rtmp_url, item)
 
 def get_params():
@@ -271,13 +349,19 @@ try:
 except:
 	pass
 try:
-	thumb = urllib.unquote_plus(params["thumb"])
+	season = int(params["season"])
 except:
+	season = None
 	pass
 try:
-	plot = urllib.unquote_plus(params["plot"])
+        thumb = urllib.unquote_plus(params["thumb"])
 except:
-	pass
+        pass
+try:
+        plot = urllib.unquote_plus(params["plot"])
+except:
+        pass
+
 
 if mode == None:
 	name = ''
@@ -285,13 +369,15 @@ if mode == None:
 elif mode == 0:
 	showCategory(name)
 elif mode == 1:
-	showAccueil(url,name)
+	showRepertoire(name, None)
 elif mode == 2:
-	showRepertoire(url, name)
+	showRepertoire(None, None)
 elif mode == 3:
-	showList(url, name)
+	showList(url, name, season)
 elif mode == 4:
 	playVideo(url, name, thumb, plot)
+elif mode == 5:
+	showRepertoire(None, name)
 
 xbmcplugin.setPluginCategory(handle = int(sys.argv[1]), category = name )
 xbmcplugin.addSortMethod( handle = int(sys.argv[1]), sortMethod = xbmcplugin.SORT_METHOD_NONE )
