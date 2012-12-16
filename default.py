@@ -8,7 +8,7 @@ __plugin__ = "Tou.tv"
 __author__ = 'misil [michaelsillslavoie@gmail.com]'
 __url__ = "http://xbmctoutv.blogspot.com/"
 __credits__ = "PBS and CBS plugins"
-__version__ = "0.1.4"
+__version__ = "0.1.5"
 
 import xbmc
 import xbmcgui
@@ -19,6 +19,7 @@ import re
 import sys
 import os
 import traceback
+import json
 
 HEADER = 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.1.1) Gecko/20090715 Firefox/3.5.1'
 BASE_CACHE_PATH = os.path.join( xbmc.translatePath( "special://profile/" ), "Thumbnails", "Video" )
@@ -27,12 +28,7 @@ TOU_TV_BASE_URL = 'http://www.tou.tv'
 TOU_TV_REPERTOIRE_URL = '/repertoire'
 TOU_TV_SEARCH_URL = '/recherche?q='
 
-THEPLATFORM_CONTENT_URL = 'http://release.theplatform.com/content.select?pid='
-
-DHARMA_RTMP_FIX = False
-
-
-
+TOUTV_API_URL = 'http://api.radio-canada.ca/validationMedia/v1/Validation.html?output=json&appCode=thePlatform&deviceType=Android&connectionType=wifi&idMedia='
 
 def unescape_callback(matches):
 	html_entities = {
@@ -298,21 +294,20 @@ def get_thumbnail(thumbnail_url):
 def playVideo(url, name, thumb, plot):
 	url_data = readUrl(url, None)
 	p = re.compile('"idMedia":"(.+?)"')
-	pid = p.findall(url_data)
-	url = THEPLATFORM_CONTENT_URL + pid[0] + '&format=SMIL'
-	url_data = readUrl(url, None)
-	rtmp_url = re.compile('<ref src="rtmp:(.+?)mp4:').findall(url_data)[0]
-	playpath = re.compile('mp4:(.+?)"').findall(url_data)[0]
-	playpath = "mp4:" + playpath
-	rtmp_url = "rtmp:" + rtmp_url
+	pid = p.findall(url_data)					# Fetch the video id
+	url = TOUTV_API_URL + pid[0]
+	
+	url_data = readUrl(url, None)				# Get video url
+	jdata = json.loads(url_data)
+	
+	rtsp_url = jdata['url']
+	rtsp_url = re.compile('(.+?)\\?').findall(rtsp_url)[0]	# Find the mp4 rtsp link
+	rtsp_url = rtsp_url.replace('_800.', '_1200.');			# We want the best quality...
+
 	item = xbmcgui.ListItem(label=name,iconImage="DefaultVideo.png",thumbnailImage=thumb)
 	item.setInfo( type="Video", infoLabels={ "Title": name, "Plot": plot } )
-	if DHARMA_RTMP_FIX:
-		item.setProperty("PlayPath", playpath)
-	else:
-		rtmp_url += " playpath=" + playpath
+	xbmc.Player(xbmc.PLAYER_CORE_DVDPLAYER).play(rtsp_url, item)
 
-	xbmc.Player(xbmc.PLAYER_CORE_DVDPLAYER).play(rtmp_url, item)
 
 def get_params():
 	param=[]
